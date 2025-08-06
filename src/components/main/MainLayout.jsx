@@ -8,20 +8,18 @@ const MainLayout = ({
   newDescription,
   newCategory,
   newDate,
-  newAmount,
+  newSum,
   editMode,
-  editingExpenseIndex,
   categories,
   categoryIcons,
   errors,
   descriptionError,
   dateError,
-  amountError,
-  handleEditExpense,
+  sumError,
   handleAddExpense,
   handleDescriptionChange,
   handleDateChange,
-  handleAmountChange,
+  handleSumChange,
   setNewCategory,
   selectedCategory,
   sortOrder,
@@ -32,6 +30,7 @@ const MainLayout = ({
   handleCategorySelect,
   handleSortSelect,
   sortOptions,
+  onDeleteExpense,
 }) => (
   <S.MainBlock>
     <S.H2>Мои расходы</S.H2>
@@ -89,40 +88,14 @@ const MainLayout = ({
             </S.FilterWrapper>
           </S.FiltersRow>
         </S.TableHeader>
-        {sortedExpenses && sortedExpenses.length > 0 ? (
-          <ExpensesTable
-            expenses={sortedExpenses}
-            onEdit={handleEditExpense}
-            editMode={editMode}
-            editingExpenseIndex={editingExpenseIndex}
-          />
-        ) : (
-          <S.Table>
-            <S.TableHead>
-              <S.TableRow>
-                <S.TableHeaderCell>Описание</S.TableHeaderCell>
-                <S.TableHeaderCell>Категория</S.TableHeaderCell>
-                <S.TableHeaderCell>Дата</S.TableHeaderCell>
-                <S.TableHeaderCell>Сумма</S.TableHeaderCell>
-                <S.TableHeaderCell></S.TableHeaderCell>
-              </S.TableRow>
-            </S.TableHead>
-            <tbody>
-              <S.TableRow>
-                <S.TableCell colSpan="5">
-                  Нет данных для отображения
-                </S.TableCell>
-              </S.TableRow>
-            </tbody>
-          </S.Table>
-        )}
+        <ExpensesTable expenses={sortedExpenses} onDelete={onDeleteExpense} />
       </S.ExpensesTableContainer>
       <ExpenseForm
         newDescription={newDescription}
         newCategory={newCategory}
         setNewCategory={setNewCategory}
         newDate={newDate}
-        newAmount={newAmount}
+        newSum={newSum}
         handleAddExpense={handleAddExpense}
         editMode={editMode}
         categories={categories}
@@ -130,10 +103,10 @@ const MainLayout = ({
         errors={errors}
         descriptionError={descriptionError}
         dateError={dateError}
-        amountError={amountError}
+        sumError={sumError}
         handleDescriptionChange={handleDescriptionChange}
         handleDateChange={handleDateChange}
-        handleAmountChange={handleAmountChange}
+        handleSumChange={handleSumChange}
       />
     </S.ContentContainer>
   </S.MainBlock>
@@ -142,30 +115,30 @@ const MainLayout = ({
 MainLayout.propTypes = {
   sortedExpenses: PropTypes.arrayOf(
     PropTypes.shape({
+      _id: PropTypes.string.isRequired,
       description: PropTypes.string.isRequired,
       category: PropTypes.string.isRequired,
       date: PropTypes.string.isRequired,
-      amount: PropTypes.string.isRequired,
+      sum: PropTypes.number.isRequired,
     })
   ).isRequired,
   newDescription: PropTypes.string.isRequired,
   newCategory: PropTypes.string.isRequired,
   newDate: PropTypes.string.isRequired,
-  newAmount: PropTypes.string.isRequired,
+  newSum: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
   editMode: PropTypes.bool.isRequired,
-  editingExpenseIndex: PropTypes.number,
+  editingTransactionId: PropTypes.string,
   categories: PropTypes.arrayOf(PropTypes.string).isRequired,
   categoryIcons: PropTypes.objectOf(PropTypes.node).isRequired,
   errors: PropTypes.object.isRequired,
   descriptionError: PropTypes.bool.isRequired,
   dateError: PropTypes.bool.isRequired,
-  amountError: PropTypes.bool.isRequired,
-  handleEditExpense: PropTypes.func.isRequired,
+  sumError: PropTypes.bool.isRequired,
   handleAddExpense: PropTypes.func.isRequired,
   handleDescriptionChange: PropTypes.func.isRequired,
   handleDateChange: PropTypes.func.isRequired,
-  handleAmountChange: PropTypes.func.isRequired,
-
+  handleSumChange: PropTypes.func.isRequired,
+  onDeleteExpense: PropTypes.func.isRequired,
   setNewCategory: PropTypes.func.isRequired,
 
   selectedCategory: PropTypes.string.isRequired,

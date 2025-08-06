@@ -32,8 +32,8 @@ export async function signUp({ name, login, password }) {
 }
 
 export function getToken() {
-  const userData = JSON.parse(localStorage.getItem("userInfo"));
-  return userData;
+ const userData = JSON.parse(localStorage.getItem("userInfo"));
+ return userData ? userData.token : null;
 }
 
 export function cleanUserData() {

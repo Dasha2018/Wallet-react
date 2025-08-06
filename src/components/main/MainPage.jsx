@@ -1,58 +1,82 @@
-import { useState } from "react";
+import { useState, useContext } from "react";
 import FoodIcon from "../foodIcon/FoodIcon";
-import { useExpenses } from "../../ExpenseContext";
 import MainLayout from "./MainLayout";
 import { useExpenseForm } from "../../hooks/useExpenseForm";
 import * as S from "./mainPage.styled";
+import { deleteTransaction } from "../../services/api";
+import { getToken } from "../../services/auth";
+import ExpenseContext from "../../ExpenseContext";
 
 function MainPage() {
-  const { expenses = [], setExpenses } = useExpenses() || {};
+  const { expenses, setExpenses } = useContext(ExpenseContext);
+
   const [selectedCategory, setSelectedCategory] = useState("");
-  const [sortOrder, setSortOrder] = useState("Дата");
+  const [sortOrder, setSortOrder] = useState("date");
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
   const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
 
+  const filteredAndSortedExpenses = expenses
+    .filter((expense) =>
+      selectedCategory ? expense.category === selectedCategory : true
+    )
+    .sort((a, b) => {
+      if (sortOrder === "date") {
+        return new Date(b.date) - new Date(a.date);
+      } else if (sortOrder === "sum") {
+        return b.sum - a.sum;
+      }
+      return 0;
+    });
+
+  const handleDeleteExpense = async (id) => {
+    try {
+      const token = getToken();
+      if (!token) throw new Error("Нет токена авторизации");
+
+      const updatedTransactions = await deleteTransaction(token, id);
+      setExpenses(updatedTransactions.transactions || updatedTransactions);
+    } catch (error) {
+      console.error("Ошибка при удалении:", error);
+    }
+  };
+
   const {
     newDescription,
-    setNewDescription,
     newCategory,
-    setNewCategory,
     newDate,
-    setNewDate,
-    newAmount,
-    setNewAmount,
+    newSum,
     errors,
     descriptionError,
     dateError,
-    amountError,
+    sumError,
     editMode,
-    editingExpenseIndex,
+    editingTransactionId,
     handleDescriptionChange,
     handleDateChange,
-    handleAmountChange,
+    handleSumChange,
     handleEditExpense,
     handleAddExpense,
+    setNewCategory,
   } = useExpenseForm(expenses, setExpenses);
 
   const categories = [
-    "Еда",
-    "Транспорт",
-    "Жильё",
-    "Развлечения",
-    "Образование",
-    "Другое",
+    { label: "Еда", key: "food" },
+    { label: "Транспорт", key: "transport" },
+    { label: "Жильё", key: "housing" },
+    { label: "Развлечения", key: "joy" },
+    { label: "Образование", key: "education" },
+    { label: "Прочее", key: "others" },
   ];
+
   const categoryIcons = {
-    Еда: <FoodIcon />,
-    Транспорт: <S.CategoryIcon src="/car (1).svg" alt="Transport icon" />,
-    Жильё: <S.CategoryIcon src="/HouseIcon.svg" alt="Housing icon" />,
-    Развлечения: (
-      <S.CategoryIcon src="/PlayIcon.svg" alt="Entertainment icon" />
-    ),
-    Образование: <S.CategoryIcon src="/StudyIcon.svg" alt="Education icon" />,
-    Другое: <S.CategoryIcon src="/OtherIcon.svg" alt="Other icon" />,
+    food: <FoodIcon />,
+    transport: <S.CategoryIcon src="/car (1).svg" alt="Transport icon" />,
+    housing: <S.CategoryIcon src="/HouseIcon.svg" alt="Housing icon" />,
+    joy: <S.CategoryIcon src="/PlayIcon.svg" alt="Entertainment icon" />,
+    education: <S.CategoryIcon src="/StudyIcon.svg" alt="Education icon" />,
+    others: <S.CategoryIcon src="/OtherIcon.svg" alt="Other icon" />,
   };
-  const sortOptions = ["Дата", "Сумма"];
+  const sortOptions = ["date", "sum"];
 
   const toggleCategoryDropdown = () => {
     setIsCategoryDropdownOpen(!isCategoryDropdownOpen);
@@ -74,63 +98,27 @@ function MainPage() {
     setIsSortDropdownOpen(false);
   };
 
-  const filteredExpenses = filterExpenses(expenses, selectedCategory);
-  const sortedExpenses = sortExpenses(filteredExpenses, sortOrder);
-
-  function filterExpenses(expenses, selectedCategory) {
-    return selectedCategory
-      ? (expenses || []).filter(
-          (expense) => expense?.category === selectedCategory
-        )
-      : expenses || [];
-  }
-
-  function sortExpenses(expenses, sortOrder) {
-    return [...(expenses || [])].sort((a, b) => {
-      if (sortOrder === "Дата") {
-        const dateA = a?.date
-          ? new Date(a.date.split(".").reverse().join("-"))
-          : new Date();
-        const dateB = b?.date
-          ? new Date(b.date.split(".").reverse().join("-"))
-          : new Date();
-        return dateB - dateA;
-      } else {
-        const amountA = a?.amount
-          ? parseFloat(a.amount.replace(" ₽", "").replace(" ", ""))
-          : 0;
-        const amountB = b?.amount
-          ? parseFloat(b.amount.replace(" ₽", "").replace(" ", ""))
-          : 0;
-        return amountB - amountA;
-      }
-    });
-  }
-
   return (
     <MainLayout
-      sortedExpenses={sortedExpenses}
+      sortedExpenses={filteredAndSortedExpenses}
       newDescription={newDescription}
       newCategory={newCategory}
       newDate={newDate}
-      newAmount={newAmount}
+      newSum={newSum}
       editMode={editMode}
-      editingExpenseIndex={editingExpenseIndex}
+      editingTransactionId={editingTransactionId}
       categories={categories}
       categoryIcons={categoryIcons}
       errors={errors}
       descriptionError={descriptionError}
       dateError={dateError}
-      amountError={amountError}
+      sumError={sumError}
       handleEditExpense={handleEditExpense}
       handleAddExpense={handleAddExpense}
       handleDescriptionChange={handleDescriptionChange}
       handleDateChange={handleDateChange}
-      handleAmountChange={handleAmountChange}
-      setNewDescription={setNewDescription}
+      handleSumChange={handleSumChange}
       setNewCategory={setNewCategory}
-      setNewDate={setNewDate}
-      setNewAmount={setNewAmount}
       selectedCategory={selectedCategory}
       sortOrder={sortOrder}
       isCategoryDropdownOpen={isCategoryDropdownOpen}
@@ -140,6 +128,7 @@ function MainPage() {
       handleCategorySelect={handleCategorySelect}
       handleSortSelect={handleSortSelect}
       sortOptions={sortOptions}
+      onDeleteExpense={handleDeleteExpense}
     />
   );
 }

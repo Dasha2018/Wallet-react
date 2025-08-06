@@ -1,118 +1,136 @@
 import { useState } from "react";
-import { isValidDateFormat, isValidAmountFormat } from "../utils/helper";
+import {
+  addTransaction,
+  updateTransaction,
+  fetchTransactions,
+} from "../services/api";
+import { getToken } from "../services/auth";
 
 export const useExpenseForm = (expenses, setExpenses) => {
   const [newDescription, setNewDescription] = useState("");
   const [newCategory, setNewCategory] = useState("");
   const [newDate, setNewDate] = useState("");
-  const [newAmount, setNewAmount] = useState("");
+  const [newSum, setNewSum] = useState("");
   const [errors, setErrors] = useState({
     description: false,
     category: false,
     date: false,
-    amount: false,
+    sum: false,
   });
   const [descriptionError, setDescriptionError] = useState(false);
   const [dateError, setDateError] = useState(false);
-  const [amountError, setAmountError] = useState(false);
+  const [sumError, setSumError] = useState(false);
   const [editMode, setEditMode] = useState(false);
-  const [editingExpenseIndex, setEditingExpenseIndex] = useState(null);
+  const [editingTransactionId, setEditingTransactionId] = useState(null);
 
   const handleDescriptionChange = (e) => {
     const value = e.target.value;
     setNewDescription(value);
-    setDescriptionError(value.length === 0);
+    setDescriptionError(value.length < 4);
   };
 
   const handleDateChange = (e) => {
-    let value = e.target.value.replace(/[^0-9.]/g, "");
-    if (value.length === 2 || value.length === 5) {
-      if (!value.endsWith(".")) value += ".";
-    }
-    if (value.length > 10) value = value.slice(0, 10);
+    const value = e.target.value;
     setNewDate(value);
-    setDateError(value.length > 0 && !isValidDateFormat(value));
+    const isValid = /^\d{4}-\d{2}-\d{2}$/.test(value);
+    setDateError(value.length > 0 && !isValid);
   };
 
-  const handleAmountChange = (e) => {
-    let value = e.target.value.replace(/[^0-9\s]/g, "");
+  const handleSumChange = (e) => {
+    const value = e.target.value.replace(/[^0-9.]/g, "");
+    setNewSum(value);
     const cleanedValue = value.replace(/\s/g, "");
-    const formattedValue = cleanedValue.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
-    setNewAmount(formattedValue);
-    setAmountError(
-      formattedValue.length > 0 && !isValidAmountFormat(formattedValue)
-    );
+    const isValid =
+      cleanedValue.length > 0 &&
+      !isNaN(Number(cleanedValue)) &&
+      Number(cleanedValue) > 0;
+    setSumError(!isValid);
   };
 
-  const handleEditExpense = (index) => {
-    const expense = expenses[index];
-    setNewDescription(expense.description);
-    setNewCategory(expense.category);
-    setNewDate(expense.date);
-    setNewAmount(expense.amount.replace(" ₽", ""));
+  const handleEditExpense = (id) => {
+    const transaction = expenses.find((exp) => exp._id === id);
+    if (!transaction) return;
+
+    setNewDescription(transaction.description);
+    setNewCategory(transaction.category);
+
+    const date = new Date(transaction.date);
+    const formattedDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    setNewDate(formattedDate);
+    setNewSum(transaction.sum.toString());
     setEditMode(true);
-    setEditingExpenseIndex(index);
+    setEditingTransactionId(id);
     setErrors({
       description: false,
       category: false,
       date: false,
-      amount: false,
+      sum: false,
     });
     setDescriptionError(false);
     setDateError(false);
-    setAmountError(false);
+    setSumError(false);
   };
 
-  const handleAddExpense = () => {
+  const handleAddExpense = async () => {
     const newErrors = {
-      description: !newDescription,
+      description: newDescription.length < 4,
       category: !newCategory,
-      date: !newDate || !isValidDateFormat(newDate),
-      amount: !newAmount || !isValidAmountFormat(newAmount),
+      date: !newDate || !/^\d{4}-\d{2}-\d{2}$/.test(newDate),
+      sum: !newSum || isNaN(Number(newSum)) || Number(newSum) <= 0,
     };
     setErrors(newErrors);
     setDescriptionError(newErrors.description);
     setDateError(newErrors.date);
-    setAmountError(newErrors.amount);
+    setSumError(newErrors.sum);
 
     if (Object.values(newErrors).some(Boolean)) return;
 
-    if (editMode) {
-      const updatedExpenses = [...expenses];
-      updatedExpenses[editingExpenseIndex] = {
-        description: newDescription,
-        category: newCategory,
-        date: newDate,
-        amount: `${newAmount} ₽`,
-      };
-      setExpenses(updatedExpenses);
-      setEditMode(false);
-      setEditingExpenseIndex(null);
-    } else {
-      setExpenses([
-        ...expenses,
-        {
-          description: newDescription,
-          category: newCategory,
-          date: newDate,
-          amount: `${newAmount} ₽`,
-        },
-      ]);
+    const token = getToken();
+    if (!token) {
+      console.error(
+        "Нет токена авторизации. Невозможно добавить/обновить транзакцию."
+      );
+      return;
     }
 
-    setNewDescription("");
-    setNewCategory("");
-    setNewDate("");
-    setNewAmount("");
-    setErrors({
-      description: false,
-      category: false,
-      date: false,
-      amount: false,
-    });
-    setDescriptionError(false);
-    setDateError(false);
-    setAmountError(false);
+    /* const dateObject = new Date(newDate);
+const formattedDate = `${dateObject.getFullYear()}-${String(dateObject.getMonth() + 1).padStart(2, "0")}-${String(dateObject.getDate()).padStart(2, "0")}`;
+ */
+    const transactionData = {
+      description: newDescription,
+      category: newCategory,
+      date: newDate,
+      sum: Number(newSum),
+    };
+
+    try {
+      if (editMode) {
+        await updateTransaction(token, editingTransactionId, transactionData);
+      } else {
+        await addTransaction(token, transactionData);
+      }
+
+      const updatedTransactionsList = await fetchTransactions({ token });
+      setExpenses(updatedTransactionsList.transactions);
+
+      setNewDescription("");
+      setNewCategory("");
+      setNewDate("");
+      setNewSum("");
+      setEditMode(false);
+      setEditingTransactionId(null);
+      setErrors({
+        description: false,
+        category: false,
+        date: false,
+        sum: false,
+      });
+      setDescriptionError(false);
+      setDateError(false);
+      setSumError(false);
+    } catch (error) {
+      console.error("Ошибка при сохранении транзакции:", error);
+    }
   };
 
   return {
@@ -122,17 +140,17 @@ export const useExpenseForm = (expenses, setExpenses) => {
     setNewCategory,
     newDate,
     setNewDate,
-    newAmount,
-    setNewAmount,
+    newSum,
+    setNewSum,
     errors,
     descriptionError,
     dateError,
-    amountError,
+    sumError,
     editMode,
-    editingExpenseIndex,
+    editingTransactionId,
     handleDescriptionChange,
     handleDateChange,
-    handleAmountChange,
+    handleSumChange,
     handleEditExpense,
     handleAddExpense,
   };

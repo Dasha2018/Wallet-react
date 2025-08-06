@@ -1,7 +1,17 @@
 import PropTypes from "prop-types";
 import * as S from "./mainPage.styled";
 
-const ExpensesTable = ({ expenses, onEdit, editMode, editingExpenseIndex }) => (
+
+const formatDate = (dateString) => {
+  if (!dateString) return "";
+  const date = new Date(dateString);
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = date.getFullYear();
+  return `${day}.${month}.${year}`;
+};
+
+const ExpensesTable = ({ expenses, onDelete }) => (
   <S.Table>
     <S.TableHead>
       <S.TableRow>
@@ -14,26 +24,19 @@ const ExpensesTable = ({ expenses, onEdit, editMode, editingExpenseIndex }) => (
     </S.TableHead>
     <tbody>
       {expenses && expenses.length > 0 ? (
-        expenses.map((expense, index) => (
-          <S.TableRow
-            key={index}
-            $isEditing={editMode && editingExpenseIndex === index}
-          >
+        expenses.map((expense) => (
+          <S.TableRow key={expense._id}>
             <S.TableCell>{expense.description}</S.TableCell>
             <S.TableCell>{expense.category}</S.TableCell>
-            <S.TableCell>{expense.date}</S.TableCell>
-            <S.TableCell>{expense.amount}</S.TableCell>
+            <S.TableCell>{formatDate(expense.date)}</S.TableCell>
+            <S.TableCell>{expense.sum}</S.TableCell>
             <S.TableCell>
-              <S.EditButton onClick={() => onEdit(index)}>
-                <S.EditIcon
-                  src={
-                    editMode && editingExpenseIndex === index
-                      ? "EditBtnGreen.svg"
-                      : "EditBtn.svg"
-                  }
-                  alt="Edit icon"
+              <S.DeleteButton onClick={() => onDelete(expense._id)}>
+                <S.DeleteIcon
+                  src="DelBtn.svg"
+                  alt="Delete icon"
                 />
-              </S.EditButton>
+              </S.DeleteButton>
             </S.TableCell>
           </S.TableRow>
         ))
@@ -49,15 +52,14 @@ const ExpensesTable = ({ expenses, onEdit, editMode, editingExpenseIndex }) => (
 ExpensesTable.propTypes = {
   expenses: PropTypes.arrayOf(
     PropTypes.shape({
+      _id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
       description: PropTypes.string.isRequired,
       category: PropTypes.string.isRequired,
       date: PropTypes.string.isRequired,
-      amount: PropTypes.string.isRequired,
+      sum: PropTypes.number.isRequired, 
     })
   ).isRequired,
-  onEdit: PropTypes.func.isRequired,
-  editMode: PropTypes.bool.isRequired,
-  editingExpenseIndex: PropTypes.number,
+  onDelete: PropTypes.func.isRequired,
 };
 
 export default ExpensesTable;
