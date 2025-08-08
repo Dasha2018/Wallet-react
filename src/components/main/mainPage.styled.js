@@ -296,6 +296,10 @@ export const InputField = styled.input`
         border-color:#A588F4;
         background-color: #DBFFE9;
     `}
+     &.error {
+    background-color: #ffe6e6;
+    border: 1px solid #cc0000;
+  }
 `;
 
 export const CategoryButtonsContainer = styled.div`
@@ -373,6 +377,10 @@ export const AddExpenseButton = styled.button`
 
   &:hover {
     background-color: #5e29be;
+  }
+  &:disabled {
+    background-color: gray;
+    cursor: not-allowed;
   }
 `;
 
