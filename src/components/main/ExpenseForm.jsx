@@ -74,7 +74,7 @@ const ExpenseForm = ({
       $hasError={!!(errors.sum || sumError)}
     />
 
-    <S.AddExpenseButton onClick={handleAddExpense}>
+    <S.AddExpenseButton type="button" onClick={handleAddExpense}>
       {editMode ? "Сохранить изменения" : "Добавить новый расход"}
     </S.AddExpenseButton>
   </S.NewExpenseContainer>

@@ -1,9 +1,9 @@
-import { useState, useContext } from "react";
+import { useState, useContext, useEffect } from "react";
 import FoodIcon from "../foodIcon/FoodIcon";
 import MainLayout from "./MainLayout";
 import { useExpenseForm } from "../../hooks/useExpenseForm";
 import * as S from "./mainPage.styled";
-import { deleteTransaction } from "../../services/api";
+import { deleteTransaction, fetchTransactions } from "../../services/api";
 import { getToken } from "../../services/auth";
 import ExpenseContext from "../../ExpenseContext";
 
@@ -14,19 +14,44 @@ function MainPage() {
   const [sortOrder, setSortOrder] = useState("date");
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
   const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const filteredAndSortedExpenses = expenses
-    .filter((expense) =>
-      selectedCategory ? expense.category === selectedCategory : true
-    )
-    .sort((a, b) => {
-      if (sortOrder === "date") {
-        return new Date(b.date) - new Date(a.date);
-      } else if (sortOrder === "sum") {
-        return b.sum - a.sum;
+  useEffect(() => {
+    const loadExpenses = async () => {
+      try {
+        const token = getToken();
+        if (!token) {
+          console.warn("Нет токена, транзакции не загружены.");
+          setIsLoading(false);
+          return;
+        }
+
+        const data = await fetchTransactions({ token });
+        setExpenses(data);
+      } catch (error) {
+        console.error("Не удалось загрузить транзакции:", error);
+      } finally {
+        setIsLoading(false);
       }
-      return 0;
-    });
+    };
+    loadExpenses();
+  }, [setExpenses]);
+
+  const filteredAndSortedExpenses =
+    Array.isArray(expenses) && expenses.length > 0
+      ? expenses
+          .filter((expense) =>
+            selectedCategory ? expense.category === selectedCategory : true
+          )
+          .sort((a, b) => {
+            if (sortOrder === "date") {
+              return new Date(b.date) - new Date(a.date);
+            } else if (sortOrder === "sum") {
+              return b.sum - a.sum;
+            }
+            return 0;
+          })
+      : [];
 
   const handleDeleteExpense = async (id) => {
     try {
@@ -68,6 +93,11 @@ function MainPage() {
     { label: "Прочее", key: "others" },
   ];
 
+  const categoryLabelsMap = categories.reduce((map, category) => {
+    map[category.key] = category.label;
+    return map;
+  }, {});
+
   const categoryIcons = {
     food: <FoodIcon />,
     transport: <S.CategoryIcon src="/car (1).svg" alt="Transport icon" />,
@@ -98,6 +128,10 @@ function MainPage() {
     setIsSortDropdownOpen(false);
   };
 
+  if (isLoading) {
+    return <div>Загрузка транзакций...</div>;
+  }
+
   return (
     <MainLayout
       sortedExpenses={filteredAndSortedExpenses}
@@ -109,6 +143,7 @@ function MainPage() {
       editingTransactionId={editingTransactionId}
       categories={categories}
       categoryIcons={categoryIcons}
+      categoryLabelsMap={categoryLabelsMap}
       errors={errors}
       descriptionError={descriptionError}
       dateError={dateError}

@@ -12,6 +12,7 @@ const MainLayout = ({
   editMode,
   categories,
   categoryIcons,
+  categoryLabelsMap,
   errors,
   descriptionError,
   dateError,
@@ -42,7 +43,11 @@ const MainLayout = ({
             <S.FilterWrapper>
               <S.FilterButton onClick={toggleCategoryDropdown}>
                 Фильтровать по категории{" "}
-                <S.GreenLink>{selectedCategory || "выбрать"}</S.GreenLink>
+                <S.GreenLink>
+                  {selectedCategory
+                    ? categoryLabelsMap[selectedCategory]
+                    : "выбрать"}
+                </S.GreenLink>
                 <S.DropdownArrow
                   $isOpen={isCategoryDropdownOpen}
                   src="/ArrowIcon.svg"
@@ -53,11 +58,13 @@ const MainLayout = ({
                 <S.DropdownMenu>
                   {categories.map((category) => (
                     <S.DropdownItem
-                      key={category}
-                      onClick={() => handleCategorySelect(category)}
+                      key={category.key}
+                      onClick={() => handleCategorySelect(category.key)}
+                      className={
+                        selectedCategory === category.key ? "selected" : ""
+                      }
                     >
-                      {categoryIcons[category]}
-                      {category}
+                      {category.label}
                     </S.DropdownItem>
                   ))}
                 </S.DropdownMenu>
@@ -66,7 +73,9 @@ const MainLayout = ({
             <S.FilterWrapper>
               <S.FilterButton onClick={toggleSortDropdown}>
                 Сортировать по{" "}
-                <S.GreenLink>{sortOrder.toLowerCase()}</S.GreenLink>
+                <S.GreenLink>
+                  {sortOrder === "date" ? "дате" : "сумме"}
+                </S.GreenLink>
                 <S.DropdownArrow
                   $isOpen={isSortDropdownOpen}
                   src="/ArrowIcon.svg"
@@ -80,7 +89,7 @@ const MainLayout = ({
                       key={option}
                       onClick={() => handleSortSelect(option)}
                     >
-                      {option}
+                      {option === "date" ? "По дате" : "По сумме"}
                     </S.DropdownItem>
                   ))}
                 </S.DropdownMenu>
@@ -88,7 +97,11 @@ const MainLayout = ({
             </S.FilterWrapper>
           </S.FiltersRow>
         </S.TableHeader>
-        <ExpensesTable expenses={sortedExpenses} onDelete={onDeleteExpense} />
+        <ExpensesTable
+          expenses={sortedExpenses}
+          onDelete={onDeleteExpense}
+          categoryLabelsMap={categoryLabelsMap}
+        />
       </S.ExpensesTableContainer>
       <ExpenseForm
         newDescription={newDescription}
@@ -128,7 +141,12 @@ MainLayout.propTypes = {
   newSum: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
   editMode: PropTypes.bool.isRequired,
   editingTransactionId: PropTypes.string,
-  categories: PropTypes.arrayOf(PropTypes.string).isRequired,
+  categories: PropTypes.arrayOf(
+    PropTypes.shape({
+      label: PropTypes.string.isRequired,
+      key: PropTypes.string.isRequired,
+    })
+  ).isRequired,
   categoryIcons: PropTypes.objectOf(PropTypes.node).isRequired,
   errors: PropTypes.object.isRequired,
   descriptionError: PropTypes.bool.isRequired,
@@ -139,6 +157,7 @@ MainLayout.propTypes = {
   handleDateChange: PropTypes.func.isRequired,
   handleSumChange: PropTypes.func.isRequired,
   onDeleteExpense: PropTypes.func.isRequired,
+  categoryLabelsMap: PropTypes.objectOf(PropTypes.string).isRequired,
   setNewCategory: PropTypes.func.isRequired,
 
   selectedCategory: PropTypes.string.isRequired,

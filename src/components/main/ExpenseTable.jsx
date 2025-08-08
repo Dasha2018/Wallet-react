@@ -1,7 +1,6 @@
 import PropTypes from "prop-types";
 import * as S from "./mainPage.styled";
 
-
 const formatDate = (dateString) => {
   if (!dateString) return "";
   const date = new Date(dateString);
@@ -11,7 +10,7 @@ const formatDate = (dateString) => {
   return `${day}.${month}.${year}`;
 };
 
-const ExpensesTable = ({ expenses, onDelete }) => (
+const ExpensesTable = ({ expenses, onDelete, categoryLabelsMap }) => (
   <S.Table>
     <S.TableHead>
       <S.TableRow>
@@ -24,18 +23,17 @@ const ExpensesTable = ({ expenses, onDelete }) => (
     </S.TableHead>
     <tbody>
       {expenses && expenses.length > 0 ? (
-        expenses.map((expense) => (
-          <S.TableRow key={expense._id}>
+        expenses.map((expense, index) => (
+          <S.TableRow key={expense._id ?? index}>
             <S.TableCell>{expense.description}</S.TableCell>
-            <S.TableCell>{expense.category}</S.TableCell>
+            <S.TableCell>
+              {categoryLabelsMap[expense.category] || expense.category}
+            </S.TableCell>
             <S.TableCell>{formatDate(expense.date)}</S.TableCell>
             <S.TableCell>{expense.sum}</S.TableCell>
             <S.TableCell>
               <S.DeleteButton onClick={() => onDelete(expense._id)}>
-                <S.DeleteIcon
-                  src="DelBtn.svg"
-                  alt="Delete icon"
-                />
+                <S.DeleteIcon src="DelBtn.svg" alt="Delete icon" />
               </S.DeleteButton>
             </S.TableCell>
           </S.TableRow>
@@ -56,10 +54,11 @@ ExpensesTable.propTypes = {
       description: PropTypes.string.isRequired,
       category: PropTypes.string.isRequired,
       date: PropTypes.string.isRequired,
-      sum: PropTypes.number.isRequired, 
+      sum: PropTypes.number.isRequired,
     })
   ).isRequired,
   onDelete: PropTypes.func.isRequired,
+  categoryLabelsMap: PropTypes.objectOf(PropTypes.string).isRequired,
 };
 
 export default ExpensesTable;

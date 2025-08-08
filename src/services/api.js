@@ -1,108 +1,80 @@
 const API_URL = "https://wedev-api.sky.pro/api/transactions";
 
-const getAuthHeaders = (token, method = "GET") => {
-  const headers = {
-    Authorization: `Bearer ${token}`,
-  };
-  if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
-    headers["Content-Type"] = "application/json";
-  }
-
+const buildHeaders = (token, hasBody = false) => {
+  const headers = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
+  if (hasBody) headers["Content-Type"] = "application/json";
   return headers;
 };
 
-
-export const fetchTransactions = async ({ token, sortBy, filterBy } = {}) => {
-  if (!token) {
-    console.warn("Нет токена, запрос к API не выполняется");
-    return [];
+async function handleResponse(res) {
+  const text = await res.text();
+  let data;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = text;
   }
 
-  let url = API_URL;
-  const params = new URLSearchParams();
+  if (!res.ok) {
+    console.error("Ошибка от API:", data);
 
-  if (sortBy) params.append("sortBy", sortBy);
-  if (filterBy) params.append("filterBy", filterBy);
-
-  if (params.toString()) {
-    url += `?${params.toString()}`;
+    const message = (data && data.message) || data || `HTTP ${res.status}`;
+    const err = new Error(message);
+    err.status = res.status;
+    err.body = data;
+    throw err;
   }
+  return data;
+}
 
-  const response = await fetch(url, { headers: getAuthHeaders(token, "GET") });
+export async function fetchTransactions({ token }) {
+  try {
+    const response = await fetch(API_URL, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
 
-  if (response.status === 401) {
-    throw new Error("Не авторизован. Пожалуйста, войдите в систему.");
+    const data = await handleResponse(response);
+    return data;
+  } catch (error) {
+    console.error("Ошибка при fetchTransactions:", error);
+    throw error;
   }
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(
-      `Ошибка загрузки (${response.status}): ${errorText || "Неизвестная ошибка"}`
-    );
-  }
-
-  return response.json();
-};
-
-export async function deleteTransaction(token, id) {
-  if (!id) throw new Error("Не передан ID транзакции");
-  if (!token) throw new Error("Нет токена авторизации");
-
-  const response = await fetch(`${API_URL}/${id}`, {
-    method: "DELETE",
-    headers: getAuthHeaders(token, "DELETE"),
-  });
-
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(
-      `Не удалось удалить транзакцию: ${response.status} ${text}`
-    );
-  }
-  return response.json();
 }
 
 export const addTransaction = async (token, transaction) => {
-  const response = await fetch(API_URL, {
+  const res = await fetch(API_URL, {
     method: "POST",
-    headers: getAuthHeaders(token, "POST"),
+    headers: buildHeaders(token),
     body: JSON.stringify(transaction),
   });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || "Ошибка добавления");
-  }
-
-  return response.json();
+  return handleResponse(res);
 };
 
 export const updateTransaction = async (token, id, transaction) => {
-  const response = await fetch(`${API_URL}/${id}`, {
+  const res = await fetch(`${API_URL}/${id}`, {
     method: "PATCH",
-    headers: getAuthHeaders(token, "PATCH"),
+    headers: buildHeaders(token, true),
     body: JSON.stringify(transaction),
   });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || "Ошибка обновления");
-  }
-
-  return response.json();
+  return handleResponse(res);
 };
 
+export const deleteTransaction = async (token, id) => {
+  const res = await fetch(`${API_URL}/${id}`, {
+    method: "DELETE",
+    headers: buildHeaders(token),
+  });
+  return handleResponse(res);
+};
 export const fetchTransactionsByPeriod = async (token, start, end) => {
-  const response = await fetch(`${API_URL}/period`, {
+  const res = await fetch(`${API_URL}/period`, {
     method: "POST",
-    headers: getAuthHeaders(token, "POST"),
+    headers: buildHeaders(token, true),
     body: JSON.stringify({ start, end }),
   });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || "Ошибка получения за период");
-  }
-
-  return response.json();
+  return handleResponse(res);
 };

@@ -1,9 +1,5 @@
 import { useState } from "react";
-import {
-  addTransaction,
-  updateTransaction,
-  fetchTransactions,
-} from "../services/api";
+import { addTransaction, updateTransaction } from "../services/api";
 import { getToken } from "../services/auth";
 
 export const useExpenseForm = (expenses, setExpenses) => {
@@ -55,7 +51,9 @@ export const useExpenseForm = (expenses, setExpenses) => {
     setNewCategory(transaction.category);
 
     const date = new Date(transaction.date);
-    const formattedDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    const formattedDate = `${date.getFullYear()}-${String(
+      date.getMonth() + 1
+    ).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
     setNewDate(formattedDate);
     setNewSum(transaction.sum.toString());
     setEditMode(true);
@@ -83,7 +81,10 @@ export const useExpenseForm = (expenses, setExpenses) => {
     setDateError(newErrors.date);
     setSumError(newErrors.sum);
 
-    if (Object.values(newErrors).some(Boolean)) return;
+    if (Object.values(newErrors).some(Boolean)) {
+      console.log("Ошибка валидации. Транзакция не будет добавлена.");
+      return;
+    }
 
     const token = getToken();
     if (!token) {
@@ -93,25 +94,33 @@ export const useExpenseForm = (expenses, setExpenses) => {
       return;
     }
 
-    /* const dateObject = new Date(newDate);
-const formattedDate = `${dateObject.getFullYear()}-${String(dateObject.getMonth() + 1).padStart(2, "0")}-${String(dateObject.getDate()).padStart(2, "0")}`;
- */
     const transactionData = {
       description: newDescription,
       category: newCategory,
       date: newDate,
       sum: Number(newSum),
     };
-
+    console.log("Отправка данных на сервер:", transactionData);
     try {
       if (editMode) {
-        await updateTransaction(token, editingTransactionId, transactionData);
-      } else {
-        await addTransaction(token, transactionData);
-      }
+        const response = await updateTransaction(
+          token,
+          editingTransactionId,
+          transactionData
+        );
+        console.log("Ответ от API (обновление):", response);
 
-      const updatedTransactionsList = await fetchTransactions({ token });
-      setExpenses(updatedTransactionsList.transactions);
+        if (response && response.transactions) {
+          setExpenses(response.transactions);
+        }
+      } else {
+        const response = await addTransaction(token, transactionData);
+        console.log("Ответ от API (добавление):", response);
+
+        if (response && response.transactions) {
+          setExpenses(response.transactions);
+        }
+      }
 
       setNewDescription("");
       setNewCategory("");
