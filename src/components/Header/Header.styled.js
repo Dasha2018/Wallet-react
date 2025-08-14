@@ -75,6 +75,8 @@ export const HeaderButton = styled.button`
   background-color: transparent;
   border: none;
   color: black;
+   color: ${({ $active }) => ($active ? "#7334EA" : "black")};
+  border-bottom: ${({ $active }) => ($active ? "1px solid #7334EA" : "none")};
   text-decoration: none;
   display: inline-block;
   align-items: center;
