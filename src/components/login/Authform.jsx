@@ -135,10 +135,6 @@ function AuthForm() {
   const isValidEmail = (email) => {
     return /\S+@\S+\.\S+/.test(email);
   };
-  // const textBtn= () => {
-  //     return isSignUp ? 'Зарегистрироваться' : 'Войти'
-  // }
-  // const text= textBtn()
 
   return (
     <S.Wrapper>
