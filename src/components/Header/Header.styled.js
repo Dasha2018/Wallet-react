@@ -75,7 +75,7 @@ export const HeaderButton = styled.button`
   background-color: transparent;
   border: none;
   color: black;
-   color: ${({ $active }) => ($active ? "#7334EA" : "black")};
+  color: ${({ $active }) => ($active ? "#7334EA" : "black")};
   border-bottom: ${({ $active }) => ($active ? "1px solid #7334EA" : "none")};
   text-decoration: none;
   display: inline-block;
@@ -95,8 +95,8 @@ export const HeaderButton = styled.button`
   }
 
   &:hover {
-    color:#7334EA ;
-    border-bottom: 1px solid #7334EA;
+    color: #7334ea;
+    border-bottom: 1px solid #7334ea;
   }
 
   @media (max-width: 768px) {
@@ -123,7 +123,7 @@ export const LogoutButton = styled(HeaderButton)`
   }
 
   &:hover {
-    color: #7334EA;
+    color: #7334ea;
     border-bottom: none;
   }
 
@@ -155,7 +155,7 @@ export const DropdownItem = styled.button`
 
   &:hover {
     background-color: #f0f0f0;
-    color: #7334EA;
+    color: #7334ea;
     border-bottom: none;
   }
 
