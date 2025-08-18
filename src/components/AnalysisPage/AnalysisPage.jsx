@@ -16,7 +16,7 @@ import {
 } from "date-fns";
 import { ru } from "date-fns/locale/ru";
 import ChartComponent from "./Diagram";
-import { useExpenses } from "../../ExpenseContext";
+import { useExpenses } from "../../useExpenses";
 
 function AnalysisPage() {
   const { expenses = [] } = useExpenses() || {};

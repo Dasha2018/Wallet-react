@@ -1,4 +1,4 @@
-import * as S from "./BAseInput.styled";
+import * as S from "./BaseInput.styled";
 function BaseInput({
   error,
   type,
