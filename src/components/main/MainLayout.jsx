@@ -22,7 +22,7 @@ const MainLayout = ({
   handleDateChange,
   handleSumChange,
   setNewCategory,
-  selectedCategory,
+  selectedCategories,
   sortOrder,
   isCategoryDropdownOpen,
   isSortDropdownOpen,
@@ -30,6 +30,7 @@ const MainLayout = ({
   toggleSortDropdown,
   handleCategorySelect,
   handleSortSelect,
+  /*  handleClearFilters, */
   sortOptions,
   onDeleteExpense,
 }) => (
@@ -44,8 +45,8 @@ const MainLayout = ({
               <S.FilterButton onClick={toggleCategoryDropdown}>
                 Фильтровать по категории{" "}
                 <S.GreenLink>
-                  {selectedCategory
-                    ? categoryLabelsMap[selectedCategory]
+                  {selectedCategories.length > 0
+                    ? `выбрано (${selectedCategories.length})`
                     : "выбрать"}
                 </S.GreenLink>
                 <S.DropdownArrow
@@ -61,12 +62,17 @@ const MainLayout = ({
                       key={category.key}
                       onClick={() => handleCategorySelect(category.key)}
                       className={
-                        selectedCategory === category.key ? "selected" : ""
+                        selectedCategories.includes(category.key)
+                          ? "selected"
+                          : ""
                       }
                     >
                       {category.label}
                     </S.DropdownItem>
                   ))}
+                  {/*  <S.ClearFiltersButton onClick={handleClearFilters}>
+                    Сбросить фильтры
+                  </S.ClearFiltersButton> */}
                 </S.DropdownMenu>
               )}
             </S.FilterWrapper>
@@ -126,27 +132,16 @@ const MainLayout = ({
 );
 
 MainLayout.propTypes = {
-  sortedExpenses: PropTypes.arrayOf(
-    PropTypes.shape({
-      _id: PropTypes.string.isRequired,
-      description: PropTypes.string.isRequired,
-      category: PropTypes.string.isRequired,
-      date: PropTypes.string.isRequired,
-      sum: PropTypes.number.isRequired,
-    })
-  ).isRequired,
-  newDescription: PropTypes.string.isRequired,
-  newCategory: PropTypes.string.isRequired,
-  newDate: PropTypes.string.isRequired,
-  newSum: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
-  editMode: PropTypes.bool.isRequired,
-  editingTransactionId: PropTypes.string,
-  categories: PropTypes.arrayOf(
-    PropTypes.shape({
-      label: PropTypes.string.isRequired,
-      key: PropTypes.string.isRequired,
-    })
-  ).isRequired,
+  selectedCategories: PropTypes.arrayOf(PropTypes.string).isRequired,
+  handleCategorySelect: PropTypes.func.isRequired,
+  /*   handleClearFilters: PropTypes.func.isRequired, */
+  sortOrder: PropTypes.string.isRequired,
+  isCategoryDropdownOpen: PropTypes.bool.isRequired,
+  isSortDropdownOpen: PropTypes.bool.isRequired,
+  toggleCategoryDropdown: PropTypes.func.isRequired,
+  toggleSortDropdown: PropTypes.func.isRequired,
+  handleSortSelect: PropTypes.func.isRequired,
+  sortOptions: PropTypes.arrayOf(PropTypes.string).isRequired,
   categoryIcons: PropTypes.objectOf(PropTypes.node).isRequired,
   errors: PropTypes.object.isRequired,
   descriptionError: PropTypes.bool.isRequired,
@@ -161,14 +156,6 @@ MainLayout.propTypes = {
   setNewCategory: PropTypes.func.isRequired,
 
   selectedCategory: PropTypes.string.isRequired,
-  sortOrder: PropTypes.string.isRequired,
-  isCategoryDropdownOpen: PropTypes.bool.isRequired,
-  isSortDropdownOpen: PropTypes.bool.isRequired,
-  toggleCategoryDropdown: PropTypes.func.isRequired,
-  toggleSortDropdown: PropTypes.func.isRequired,
-  handleCategorySelect: PropTypes.func.isRequired,
-  handleSortSelect: PropTypes.func.isRequired,
-  sortOptions: PropTypes.arrayOf(PropTypes.string).isRequired,
 };
 
 export default MainLayout;

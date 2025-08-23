@@ -1,11 +1,12 @@
 import { Bar } from 'react-chartjs-2'
 import { Chart, registerables } from 'chart.js'
-Chart.register(...registerables)
 import ChartDataLabels from 'chartjs-plugin-datalabels'
-Chart.register(ChartDataLabels)
-import { useEffect, useRef, useMemo } from 'react'
+import { useMemo } from 'react'
 import styled from 'styled-components'
 import PropTypes from 'prop-types'
+
+
+Chart.register(...registerables, ChartDataLabels)
 
 const ChartContainer = styled.div`
     width: 100%;
@@ -18,10 +19,20 @@ const ChartContainer = styled.div`
     min-height: 400px;
 `
 
-const ChartComponent = ({ expenses }) => {
-    const chartRef = useRef(null)
 
-    console.log('Expenses in ChartComponent:', expenses)
+const categoryMap = {
+    food: 'Еда',
+    transport: 'Транспорт',
+    housing: 'Жильё',
+    joy: 'Развлечения',
+    education: 'Образование',
+    others: 'Прочее',
+}
+
+const ChartComponent = ({ expenses }) => {
+    if (expenses.length === 0) {
+        console.log('No expenses data provided to ChartComponent.')
+    }
 
     const categoryTotals = useMemo(() => {
         const totals = {
@@ -30,18 +41,28 @@ const ChartComponent = ({ expenses }) => {
             Жильё: 0,
             Развлечения: 0,
             Образование: 0,
-            Другое: 0,
+            Прочее: 0,
         }
+
         expenses.forEach((expense) => {
             const amount = parseFloat(
-                expense.amount.replace(' ₽', '').replace(' ', '')
+                expense.amount.replace(' ₽', '').replace(',', '.').replace(/\s/g, '')
             )
-            totals[expense.category] = (totals[expense.category] || 0) + amount
+
+            const readableCategory = categoryMap[expense.category]
+
+            if (readableCategory) {
+                totals[readableCategory] += amount
+            } else {
+                console.warn(`Unknown category found: ${expense.category}`)
+            }
         })
+
         return totals
     }, [expenses])
 
-    const maxValue = Math.max(...Object.values(categoryTotals))
+    const dataValues = Object.values(categoryTotals)
+    const maxValue = dataValues.length > 0 ? Math.max(...dataValues) : 0
     const yAxisMax = maxValue * 1.2
 
     const barChartData = useMemo(() => {
@@ -52,7 +73,7 @@ const ChartComponent = ({ expenses }) => {
                 'Жильё',
                 'Развлечения',
                 'Образование',
-                'Другое',
+                'Прочее',
             ],
             datasets: [
                 {
@@ -62,7 +83,7 @@ const ChartComponent = ({ expenses }) => {
                         categoryTotals['Жильё'],
                         categoryTotals['Развлечения'],
                         categoryTotals['Образование'],
-                        categoryTotals['Другое'],
+                        categoryTotals['Прочее'],
                     ],
                     label: 'Расходы',
                     backgroundColor: [
@@ -81,15 +102,6 @@ const ChartComponent = ({ expenses }) => {
         }
     }, [categoryTotals])
 
-    useEffect(() => {
-        if (chartRef.current) {
-            const chartInstance = chartRef.current.chartInstance
-            if (chartInstance) {
-                chartInstance.destroy()
-            }
-        }
-    }, [barChartData])
-
     const options = {
         responsive: true,
         maintainAspectRatio: false,
@@ -100,7 +112,7 @@ const ChartComponent = ({ expenses }) => {
                 display: true,
                 color: 'black',
                 font: { weight: 600, size: 16, family: 'Montserrat' },
-                formatter: (value) => (value > 0 ? value + ' ₽' : ''),
+                formatter: (value) => (value > 0 ? value.toFixed(0) + ' ₽' : ''),
                 anchor: 'end',
                 align: 'top',
                 offset: 10,
@@ -124,7 +136,7 @@ const ChartComponent = ({ expenses }) => {
 
     return (
         <ChartContainer>
-            <Bar data={barChartData} options={options} ref={chartRef} />
+            <Bar data={barChartData} options={options} />
         </ChartContainer>
     )
 }

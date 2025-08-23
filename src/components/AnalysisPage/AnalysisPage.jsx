@@ -1,5 +1,5 @@
 import * as S from "./AnalysisPage.styled";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   format,
   startOfMonth,
@@ -7,7 +7,6 @@ import {
   eachDayOfInterval,
   isSameDay,
   isToday,
-  getYear,
   startOfYear,
   endOfYear,
   eachMonthOfInterval,
@@ -16,16 +15,86 @@ import {
 } from "date-fns";
 import { ru } from "date-fns/locale/ru";
 import ChartComponent from "./Diagram";
-import { useExpenses } from "../../useExpenses";
+import { fetchTransactionsByPeriod } from "../../services/api";
+import { getToken } from "../../services/auth";
 
 function AnalysisPage() {
-  const { expenses = [] } = useExpenses() || {};
-  const [currentDate] = useState(new Date(2024, 6, 1));
+  const [currentDate] = useState(new Date());
   const [selectedStartDate, setSelectedStartDate] = useState(
-    new Date(2024, 6, 1)
+    startOfMonth(currentDate)
   );
-  const [selectedEndDate, setSelectedEndDate] = useState(new Date(2024, 6, 31));
+  const [selectedEndDate, setSelectedEndDate] = useState(
+    endOfMonth(currentDate)
+  );
   const [selectedPeriod, setSelectedPeriod] = useState("Месяц");
+  const [expenses, setExpenses] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const loadExpenses = async (start, end) => {
+    setLoading(true);
+    try {
+      const token = getToken();
+      if (token) {
+        const data = await fetchTransactionsByPeriod(token, start, end);
+        const normalizedExpenses = data.map((item) => ({
+          description: item.description,
+          category: item.category,
+          date: item.date,
+          amount: String(item.amount),
+        }));
+        setExpenses(normalizedExpenses);
+      }
+    } catch (error) {
+      console.error("Ошибка загрузки данных за период:", error);
+      setExpenses([]); 
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+  useEffect(() => {
+  if (selectedStartDate && selectedEndDate) {
+    loadExpenses(selectedStartDate, selectedEndDate);
+  }
+}, [selectedStartDate, selectedEndDate]);
+
+
+  const handleDayClick = (day) => {
+    if (!selectedStartDate || (selectedStartDate && selectedEndDate)) {
+      setSelectedStartDate(day);
+
+      setSelectedEndDate(null);
+    } else if (selectedStartDate && !selectedEndDate) {
+      if (day < selectedStartDate) {
+        setSelectedEndDate(selectedStartDate);
+
+        setSelectedStartDate(day);
+      } else {
+        setSelectedEndDate(day);
+      }
+    }
+  };
+
+  const handleMonthClick = (month) => {
+    const start = startOfMonth(month);
+    const end = endOfMonth(month);
+    setSelectedStartDate(start);
+    setSelectedEndDate(end);
+  };
+
+
+  const handlePeriodChange = (period) => {
+    setSelectedPeriod(period);
+    const today = new Date();
+    if (period === "Месяц") {
+      setSelectedStartDate(startOfMonth(today));
+      setSelectedEndDate(endOfMonth(today));
+    } else if (period === "Год") {
+      setSelectedStartDate(startOfYear(today));
+      setSelectedEndDate(endOfYear(today));
+    }
+  };
 
   const getPeriodRange = () => {
     if (selectedStartDate && selectedEndDate) {
@@ -54,34 +123,6 @@ function AnalysisPage() {
     yearMonthList.push({ type: "monthGrid", months, year });
   }
 
-  const handleDayClick = (day) => {
-    if (!selectedStartDate || (selectedStartDate && selectedEndDate)) {
-      setSelectedStartDate(day);
-      setSelectedEndDate(null);
-    } else if (selectedStartDate && !selectedEndDate) {
-      if (day < selectedStartDate) {
-        setSelectedEndDate(selectedStartDate);
-        setSelectedStartDate(day);
-      } else {
-        setSelectedEndDate(day);
-      }
-    }
-  };
-
-  const handleMonthClick = (month) => {
-    if (!selectedStartDate || (selectedStartDate && selectedEndDate)) {
-      setSelectedStartDate(month);
-      setSelectedEndDate(null);
-    } else if (selectedStartDate && !selectedEndDate) {
-      if (month < selectedStartDate) {
-        setSelectedEndDate(selectedStartDate);
-        setSelectedStartDate(month);
-      } else {
-        setSelectedEndDate(month);
-      }
-    }
-  };
-
   const isSelectedDay = (day) => {
     if (!selectedStartDate || !selectedEndDate)
       return isSameDay(day, selectedStartDate);
@@ -91,7 +132,10 @@ function AnalysisPage() {
   const isSelectedMonth = (month) => {
     if (!selectedStartDate || !selectedEndDate)
       return isSameDay(month, selectedStartDate);
-    return month >= selectedStartDate && month <= selectedEndDate;
+    const start = startOfMonth(selectedStartDate);
+    const end = endOfMonth(selectedEndDate);
+    const currentMonthStart = startOfMonth(month);
+    return currentMonthStart >= start && currentMonthStart <= end;
   };
 
   const isCurrentDay = (day) => {
@@ -100,12 +144,7 @@ function AnalysisPage() {
 
   const dayNames = ["пн", "вт", "ср", "чт", "пт", "сб", "вс"];
 
-  const filteredExpenses = expenses.filter((expense) => {
-    const expenseDate = new Date(expense.date.split(".").reverse().join("-"));
-    return expenseDate >= periodRange.start && expenseDate <= periodRange.end;
-  });
-
-  const totalAmount = filteredExpenses.reduce(
+  const totalAmount = expenses.reduce(
     (sum, expense) =>
       sum + parseFloat(expense.amount.replace(" ₽", "").replace(" ", "")),
     0
@@ -145,7 +184,7 @@ function AnalysisPage() {
                 <S.PeriodElement
                   key={period}
                   $active={selectedPeriod === period}
-                  onClick={() => setSelectedPeriod(period)}
+                  onClick={() => handlePeriodChange(period)}
                 >
                   {period}
                 </S.PeriodElement>
@@ -190,18 +229,18 @@ function AnalysisPage() {
             )}
             {selectedPeriod === "Год" && (
               <S.MonthList>
-                {yearMonthList.map((item, index) => {
+                {yearMonthList.map((item) => {
                   if (item.type === "yearHeader") {
                     return (
-                      <S.YearHeader key={`year-${getYear(item.year)}`}>
-                        {getYear(item.year)}
+                      <S.YearHeader key={`year-${item.year}`}>
+                        {item.year}
                       </S.YearHeader>
                     );
                   } else {
                     const months = item.months;
                     const year = item.year;
                     return (
-                      <S.MonthGrid key={`month-grid-${getYear(year)}-${index}`}>
+                      <S.MonthGrid key={`month-grid-${year}`}>
                         {months.map((month) => (
                           <S.Month
                             key={month.toISOString()}
@@ -228,8 +267,10 @@ function AnalysisPage() {
               {format(periodRange.end, "dd MMMM yyyy", { locale: ru })}
             </S.FiltersContainer>
           </S.TableHeader>
-          {filteredExpenses.length > 0 ? (
-            <ChartComponent expenses={filteredExpenses} />
+          {loading ? (
+            <div>Загрузка данных...</div>
+          ) : expenses.length > 0 ? (
+            <ChartComponent expenses={expenses} />
           ) : (
             <div>Нет данных для отображения за выбранный период.</div>
           )}

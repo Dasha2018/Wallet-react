@@ -7,25 +7,24 @@ const buildHeaders = (token, hasBody = false) => {
   return headers;
 };
 
-async function handleResponse(res) {
-  const text = await res.text();
-  let data;
-  try {
-    data = text ? JSON.parse(text) : null;
-  } catch {
-    data = text;
-  }
-
+export async function handleResponse(res) {
   if (!res.ok) {
-    console.error("Ошибка от API:", data);
+    let errorData;
+    try {
+      errorData = await res.json();
+      console.error("Ошибка от API:", errorData);
+    } catch {
+      errorData = await res.text();
+      console.error("Ошибка от API:", errorData);
+    }
 
-    const message = (data && data.message) || data || `HTTP ${res.status}`;
+    const message = (errorData && errorData.error) || errorData || `HTTP ${res.status}`;
     const err = new Error(message);
     err.status = res.status;
-    err.body = data;
+    err.body = errorData;
     throw err;
   }
-  return data;
+  return await res.json();
 }
 
 export async function fetchTransactions({ token }) {
@@ -70,11 +69,30 @@ export const deleteTransaction = async (token, id) => {
   });
   return handleResponse(res);
 };
-export const fetchTransactionsByPeriod = async (token, start, end) => {
+/* export const fetchTransactionsByPeriod = async (token, start, end) => {
   const res = await fetch(`${API_URL}/period`, {
     method: "POST",
     headers: buildHeaders(token, true),
     body: JSON.stringify({ start, end }),
   });
   return handleResponse(res);
+}; */
+
+export const fetchTransactionsByPeriod = async (token, start, end) => {
+  try {
+    const res = await fetch(`${API_URL}/period`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        start: start.toISOString(),
+        end: end.toISOString(),
+      }),
+    });
+    return await handleResponse(res);
+  } catch (error) {
+    console.error("Ошибка fetchTransactionsByPeriod:", error);
+    throw error;
+  }
 };
