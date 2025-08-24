@@ -34,31 +34,31 @@ function AnalysisPage() {
     setLoading(true);
     try {
       const token = getToken();
-      if (token) {
-        const data = await fetchTransactionsByPeriod(token, start, end);
-        const normalizedExpenses = data.map((item) => ({
-          description: item.description,
-          category: item.category,
-          date: item.date,
-          amount: String(item.amount),
-        }));
-        setExpenses(normalizedExpenses);
-      }
+      if (!token) throw new Error("Нет токена");
+      const data = await fetchTransactionsByPeriod(token, start, end);
+      const normalizedExpenses = data.map((item) => ({
+        description: item.description,
+        category: item.category,
+        date: item.date,
+        amount: Number(item?.sum ?? 0),
+      }));
+      setExpenses(normalizedExpenses);
     } catch (error) {
+      if (error.status === 401) {
+        console.warn("Токен недействителен/отсутствует, надо перелогиниться");
+      }
       console.error("Ошибка загрузки данных за период:", error);
-      setExpenses([]); 
+      setExpenses([]);
     } finally {
       setLoading(false);
     }
   };
 
-
   useEffect(() => {
-  if (selectedStartDate && selectedEndDate) {
-    loadExpenses(selectedStartDate, selectedEndDate);
-  }
-}, [selectedStartDate, selectedEndDate]);
-
+    if (selectedStartDate && selectedEndDate) {
+      loadExpenses(selectedStartDate, selectedEndDate);
+    }
+  }, [selectedStartDate, selectedEndDate]);
 
   const handleDayClick = (day) => {
     if (!selectedStartDate || (selectedStartDate && selectedEndDate)) {
@@ -82,7 +82,6 @@ function AnalysisPage() {
     setSelectedStartDate(start);
     setSelectedEndDate(end);
   };
-
 
   const handlePeriodChange = (period) => {
     setSelectedPeriod(period);
@@ -145,8 +144,7 @@ function AnalysisPage() {
   const dayNames = ["пн", "вт", "ср", "чт", "пт", "сб", "вс"];
 
   const totalAmount = expenses.reduce(
-    (sum, expense) =>
-      sum + parseFloat(expense.amount.replace(" ₽", "").replace(" ", "")),
+    (sum, expense) => sum + expense.amount,
     0
   );
 

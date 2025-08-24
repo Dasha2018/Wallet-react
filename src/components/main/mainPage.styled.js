@@ -428,16 +428,4 @@ export const DeleteIcon = styled.img`
   width: 12px;
   height: 12px;
 `;
-/* export const ClearFiltersButton = styled.button`
-  width: 100%;
-  padding: 10px 15px;
-  background-color: #f0f0f0;
-  border: none;
-  border-top: 1px solid #e0e0e0;
-  cursor: pointer;
-  text-align: center;
-  color: #333;
-  &:hover {
-    background-color: #ddd;
-  }
-`; */
+

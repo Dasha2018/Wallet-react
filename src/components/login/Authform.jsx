@@ -90,7 +90,7 @@ function AuthForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Валидация полей
+
     const newErrors = {};
     if (isSignUp && !formData.name.trim()) {
       newErrors.name = "Введите имя";

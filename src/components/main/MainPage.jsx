@@ -15,7 +15,7 @@ function MainPage() {
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
   const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [isLoaded, setIsLoaded] = useState(false); // Добавляем новое состояние
+  const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
     const loadExpenses = async () => {
@@ -26,7 +26,7 @@ function MainPage() {
         if (!token) {
           console.warn("Нет токена, транзакции не загружены.");
           setIsLoading(false);
-          setIsLoaded(true); // Загрузка завершена, но данных нет
+          setIsLoaded(true);
           return;
         }
 
@@ -38,7 +38,7 @@ function MainPage() {
       } finally {
         console.log("Загрузка завершена.");
         setIsLoading(false);
-        setIsLoaded(true); // Устанавливаем, что загрузка завершена, независимо от результата
+        setIsLoaded(true);
       }
     };
     loadExpenses();
@@ -147,7 +147,6 @@ function MainPage() {
     setIsSortDropdownOpen(false);
   };
 
-  // Улучшенная логика для отображения состояния загрузки/отсутствия данных
   if (isLoading) {
     return (
       <S.MainBlock>

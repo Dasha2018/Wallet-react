@@ -8,23 +8,28 @@ const buildHeaders = (token, hasBody = false) => {
 };
 
 export async function handleResponse(res) {
+  const raw = await res.text();
+
   if (!res.ok) {
-    let errorData;
+    let parsed;
     try {
-      errorData = await res.json();
-      console.error("Ошибка от API:", errorData);
+      parsed = raw ? JSON.parse(raw) : null;
     } catch {
-      errorData = await res.text();
-      console.error("Ошибка от API:", errorData);
+      parsed = null;
     }
 
-    const message = (errorData && errorData.error) || errorData || `HTTP ${res.status}`;
+    const message = (parsed && parsed.error) || raw || `HTTP ${res.status}`;
     const err = new Error(message);
     err.status = res.status;
-    err.body = errorData;
+    err.body = parsed ?? raw;
     throw err;
   }
-  return await res.json();
+
+  try {
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return raw;
+  }
 }
 
 export async function fetchTransactions({ token }) {
@@ -69,30 +74,26 @@ export const deleteTransaction = async (token, id) => {
   });
   return handleResponse(res);
 };
-/* export const fetchTransactionsByPeriod = async (token, start, end) => {
-  const res = await fetch(`${API_URL}/period`, {
-    method: "POST",
-    headers: buildHeaders(token, true),
-    body: JSON.stringify({ start, end }),
-  });
-  return handleResponse(res);
-}; */
+
+const toMDY = (d) => `${d.getMonth() + 1}-${d.getDate()}-${d.getFullYear()}`;
 
 export const fetchTransactionsByPeriod = async (token, start, end) => {
-  try {
-    const res = await fetch(`${API_URL}/period`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        start: start.toISOString(),
-        end: end.toISOString(),
-      }),
-    });
-    return await handleResponse(res);
-  } catch (error) {
-    console.error("Ошибка fetchTransactionsByPeriod:", error);
-    throw error;
+  if (!token) {
+    const err = new Error("Не авторизован");
+    err.status = 401;
+    throw err;
   }
+
+  const res = await fetch(`${API_URL}/period`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      start: toMDY(start),
+      end: toMDY(end),
+    }),
+  });
+
+  return handleResponse(res);
 };
