@@ -130,6 +130,10 @@ export const DropdownItem = styled.div`
         saturate(2756%) hue-rotate(88deg) brightness(97%) contrast(99%);
     }
   }
+  &.selected {
+    background-color: #e0f2f1;
+    font-weight: bold;
+  }
 `;
 
 export const DropdownArrow = styled.img`
@@ -424,3 +428,4 @@ export const DeleteIcon = styled.img`
   width: 12px;
   height: 12px;
 `;
+

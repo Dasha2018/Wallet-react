@@ -10,28 +10,35 @@ import ExpenseContext from "../../ExpenseContext";
 function MainPage() {
   const { expenses, setExpenses } = useContext(ExpenseContext);
 
-  const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedCategories, setSelectedCategories] = useState([]);
   const [sortOrder, setSortOrder] = useState("date");
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
   const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
     const loadExpenses = async () => {
+      setIsLoading(true);
+      console.log("Начало загрузки транзакций...");
       try {
         const token = getToken();
         if (!token) {
           console.warn("Нет токена, транзакции не загружены.");
           setIsLoading(false);
+          setIsLoaded(true);
           return;
         }
 
         const data = await fetchTransactions({ token });
+        console.log("Транзакции успешно загружены:", data);
         setExpenses(data);
       } catch (error) {
         console.error("Не удалось загрузить транзакции:", error);
       } finally {
+        console.log("Загрузка завершена.");
         setIsLoading(false);
+        setIsLoaded(true);
       }
     };
     loadExpenses();
@@ -41,7 +48,9 @@ function MainPage() {
     Array.isArray(expenses) && expenses.length > 0
       ? expenses
           .filter((expense) =>
-            selectedCategory ? expense.category === selectedCategory : true
+            selectedCategories.length > 0
+              ? selectedCategories.includes(expense.category)
+              : true
           )
           .sort((a, b) => {
             if (sortOrder === "date") {
@@ -119,8 +128,18 @@ function MainPage() {
   };
 
   const handleCategorySelect = (category) => {
-    setSelectedCategory(category);
-    setIsCategoryDropdownOpen(false);
+    setSelectedCategories((prevSelected) => {
+      if (prevSelected.includes(category)) {
+        return prevSelected.filter((item) => item !== category);
+      } else {
+        return [...prevSelected, category];
+      }
+    });
+  };
+
+  const handleClearFilters = () => {
+    setSelectedCategories([]);
+    setSortOrder("date");
   };
 
   const handleSortSelect = (order) => {
@@ -129,7 +148,49 @@ function MainPage() {
   };
 
   if (isLoading) {
-    return <div>Загрузка транзакций...</div>;
+    return (
+      <S.MainBlock>
+        <S.H2>Мои расходы</S.H2>
+        <S.ContentContainer>
+          <S.ExpensesTableContainer>
+            <div>Загрузка транзакций...</div>
+          </S.ExpensesTableContainer>
+        </S.ContentContainer>
+      </S.MainBlock>
+    );
+  }
+
+  if (isLoaded && expenses.length === 0) {
+    return (
+      <S.MainBlock>
+        <S.H2>Мои расходы</S.H2>
+        <S.ContentContainer>
+          <S.ExpensesTableContainer>
+            <div>
+              Нет данных для отображения. Добавьте свои первые транзакции.
+            </div>
+          </S.ExpensesTableContainer>
+          <ExpenseForm
+            newDescription={newDescription}
+            newCategory={newCategory}
+            setNewCategory={setNewCategory}
+            newDate={newDate}
+            newSum={newSum}
+            handleAddExpense={handleAddExpense}
+            editMode={editMode}
+            categories={categories}
+            categoryIcons={categoryIcons}
+            errors={errors}
+            descriptionError={descriptionError}
+            dateError={dateError}
+            sumError={sumError}
+            handleDescriptionChange={handleDescriptionChange}
+            handleDateChange={handleDateChange}
+            handleSumChange={handleSumChange}
+          />
+        </S.ContentContainer>
+      </S.MainBlock>
+    );
   }
 
   return (
@@ -154,7 +215,7 @@ function MainPage() {
       handleDateChange={handleDateChange}
       handleSumChange={handleSumChange}
       setNewCategory={setNewCategory}
-      selectedCategory={selectedCategory}
+      selectedCategories={selectedCategories}
       sortOrder={sortOrder}
       isCategoryDropdownOpen={isCategoryDropdownOpen}
       isSortDropdownOpen={isSortDropdownOpen}
@@ -162,6 +223,7 @@ function MainPage() {
       toggleSortDropdown={toggleSortDropdown}
       handleCategorySelect={handleCategorySelect}
       handleSortSelect={handleSortSelect}
+      handleClearFilters={handleClearFilters}
       sortOptions={sortOptions}
       onDeleteExpense={handleDeleteExpense}
     />

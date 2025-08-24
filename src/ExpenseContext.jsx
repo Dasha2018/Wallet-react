@@ -7,6 +7,7 @@ const ExpenseContext = createContext();
 
 export function ExpenseProvider({ children }) {
   const [expenses, setExpenses] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadExpenses = async () => {
@@ -15,22 +16,25 @@ export function ExpenseProvider({ children }) {
         if (!token) return;
 
         const data = await fetchTransactions({ token });
-
         const rawExpenses = data.transactions || data;
 
-        const normalizedExpenses = rawExpenses.map((item) => ({
-          id: item.id || item._id || String(Math.random()),
-          description: item.description || item.title || "Без описания",
-          category: item.category || "Не указана",
-          date: new Date(item.date || item.createdAt).toLocaleDateString(
-            "ru-RU"
-          ),
-          amount: String(item.amount ?? 0),
-        }));
+        const normalizedExpenses = rawExpenses.map((item) => {
+          const isoDate = item.date || item.createdAt;
+
+          return {
+            id: item.id || item._id || String(Math.random()),
+            description: item.description || item.title || "Без описания",
+            category: item.category || "others",
+            date: isoDate,
+            amount: String(item.amount ?? 0),
+          };
+        });
 
         setExpenses(normalizedExpenses);
       } catch (error) {
         console.error("Ошибка загрузки транзакций", error);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -38,7 +42,7 @@ export function ExpenseProvider({ children }) {
   }, []);
 
   return (
-    <ExpenseContext.Provider value={{ expenses, setExpenses }}>
+    <ExpenseContext.Provider value={{ expenses, setExpenses, loading }}>
       {children}
     </ExpenseContext.Provider>
   );

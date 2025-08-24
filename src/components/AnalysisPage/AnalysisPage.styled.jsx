@@ -90,7 +90,7 @@ export const PeriodElement = styled.button`
   text-decoration: ${({ $active }) => ($active ? "underline" : "none")};
 
   &:hover {
-    color: #7334EA;
+    color: #7334ea;
     font-weight: 600;
     text-decoration: none;
   }
@@ -112,8 +112,9 @@ export const CalendarTitle = styled.div`
 `;
 
 export const DaysOfWeek = styled.div`
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
   font-weight: 600;
   font-size: 12px;
   color: #999999;
@@ -126,13 +127,12 @@ export const DaysOfWeek = styled.div`
 `;
 
 export const DayOfWeek = styled.div`
-  flex: 1;
   text-align: center;
 `;
 
 export const CalendarGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, calc((100% - 30px) / 7));
   gap: 5px;
   flex-grow: 1;
   height: 472px;
@@ -161,8 +161,7 @@ export const CalendarGrid = styled.div`
 `;
 
 export const Day = styled.div`
-  width: 40px;
-  height: 40px;
+  aspect-ratio: 1 / 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -179,8 +178,8 @@ export const Day = styled.div`
   color: ${({ $today }) => ($today ? "#7334EA" : "#000")};
 
   &:hover {
-    background: #C0B2F9;
-    color: #7334EA;
+    background: #c0b2f9;
+    color: #7334ea;
   }
 `;
 
@@ -261,8 +260,8 @@ export const Month = styled.div`
   color: ${({ $today }) => ($today ? "#7334EA" : "#000")};
 
   &:hover {
-    background: #C0B2F9;
-    color: #7334EA;
+    background: #c0b2f9;
+    color: #7334ea;
   }
 `;
 
@@ -362,7 +361,7 @@ export const InputField = styled.input`
   vertical-align: middle;
 
   &:focus {
-    border-color: #7334EA;
+    border-color: #7334ea;
     outline: none;
   }
 `;

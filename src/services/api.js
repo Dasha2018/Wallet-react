@@ -7,25 +7,29 @@ const buildHeaders = (token, hasBody = false) => {
   return headers;
 };
 
-async function handleResponse(res) {
-  const text = await res.text();
-  let data;
-  try {
-    data = text ? JSON.parse(text) : null;
-  } catch {
-    data = text;
-  }
+export async function handleResponse(res) {
+  const raw = await res.text();
 
   if (!res.ok) {
-    console.error("Ошибка от API:", data);
+    let parsed;
+    try {
+      parsed = raw ? JSON.parse(raw) : null;
+    } catch {
+      parsed = null;
+    }
 
-    const message = (data && data.message) || data || `HTTP ${res.status}`;
+    const message = (parsed && parsed.error) || raw || `HTTP ${res.status}`;
     const err = new Error(message);
     err.status = res.status;
-    err.body = data;
+    err.body = parsed ?? raw;
     throw err;
   }
-  return data;
+
+  try {
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return raw;
+  }
 }
 
 export async function fetchTransactions({ token }) {
@@ -70,11 +74,26 @@ export const deleteTransaction = async (token, id) => {
   });
   return handleResponse(res);
 };
+
+const toMDY = (d) => `${d.getMonth() + 1}-${d.getDate()}-${d.getFullYear()}`;
+
 export const fetchTransactionsByPeriod = async (token, start, end) => {
+  if (!token) {
+    const err = new Error("Не авторизован");
+    err.status = 401;
+    throw err;
+  }
+
   const res = await fetch(`${API_URL}/period`, {
     method: "POST",
-    headers: buildHeaders(token, true),
-    body: JSON.stringify({ start, end }),
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      start: toMDY(start),
+      end: toMDY(end),
+    }),
   });
+
   return handleResponse(res);
 };
